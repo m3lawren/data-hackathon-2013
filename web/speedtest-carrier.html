@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Google Maps JavaScript API v3 Example: Heatmap Layer</title>
+    <link href="/maps/documentation/javascript/examples/default.css" rel="stylesheet">
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false&libraries=visualization"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+    <script>
+      $(function() {
+        $.ajax({
+          url: "speedtest-mobile.json", 
+          dataType: 'json',
+          success: function(data) {
+            rawData = data;
+            initialize();
+          },
+          error: function(a, b, c) {
+            alert(a);
+            alert(b);
+            alert(c);
+          }
+        });
+      });
+
+      var rawData = [];
+      var curTime = 0;
+      var timeOffset = -5 * 60;
+      var pointArray = [];
+      var running = false;
+      var interval;
+      var carrier1 = "t-mobile";
+      var carrier2 = "verizon";
+
+      function initialize() {
+        var map, mapPoints, heatmap;
+        var mapOptions = {
+          zoom: 5,
+          center: new google.maps.LatLng(37.09024,-95.712891),
+          mapTypeId: google.maps.MapTypeId.SATELLITE
+        };
+      
+        map = new google.maps.Map(document.getElementById('map_canvas'),
+            mapOptions);
+
+        function weightFunc(point) {
+          return point.score;
+        }
+
+        function fmtMbps(num) {
+          return (num / 1024 / 1024).toFixed(2) + "mbps";
+        }
+
+        function fmtMs(num) {
+          return num.toFixed(1) + "ms";
+        }
+
+        var groupedData = {};
+        var minScore = 10000;
+        var maxScore = 0;
+
+        rawData.forEach(function(point) {
+          if (point.carrier != carrier1 && point.carrier != carrier2) return;
+
+          var divScale = 2;
+          point.latitude = Math.round(point.latitude / divScale) * divScale;
+          point.longitude = Math.round(point.longitude / divScale) * divScale;
+
+          if (point.score > maxScore) maxScore = point.score;
+          if (point.score < minScore) minScore = point.score;
+
+          var key = [point.latitude, point.longitude];
+
+          if (groupedData[key] == undefined) {
+            groupedData[key] = {};
+            groupedData[key][carrier1] = null;
+            groupedData[key][carrier2] = null;
+          }
+
+          if (groupedData[key][point.carrier] == null || groupedData[key][point.carrier].score < point.score) {
+            groupedData[key][point.carrier] = point;
+          }
+        });
+
+        var colA = [0, 127, 255];
+        var colB = [255, 0, 0];
+
+        for (key in groupedData) {
+          processPoint();
+          function processPoint() {
+            var c1Point = groupedData[key][carrier1];
+            var c2Point = groupedData[key][carrier2];
+            
+            var weight;
+            var winner;
+            var loser = null;
+            var color;
+
+            if (c1Point == null) {
+              winner = c2Point;
+              color = colA;
+            } else if (c2Point == null) {
+              winner = c1Point;
+              color = colB;
+            } else {
+              if (c1Point.score < c2Point.score) {
+                winner = c2Point;
+                loser = c1Point;
+              } else {
+                winner = c1Point;
+                loser = c2Point;
+              }
+              var scaleA = c1Point.score / (c1Point.score + c2Point.score);
+              var scaleB = c2Point.score / (c1Point.score + c2Point.score);
+              color = [colA[0] * scaleA + colB[0] * scaleB, 
+                       colA[1] * scaleA + colB[1] * scaleB,
+                       colA[2] * scaleA + colB[2] * scaleB];
+
+            }
+
+            weight = (winner.score - minScore) / (maxScore - minScore);
+
+            var infoWindow = new google.maps.InfoWindow({
+              content: '<table class="infoWindow">' + 
+                  '<tr><th>Winner:</th><td>' + winner.carrier + '</td></tr>' +
+                  '<tr><th>Winner\'s Score:</th><td>' + winner.score + '</td></tr>' + 
+                  '<tr><th>Loser\'s Score:</th><td>' + (loser == null ? 'n/a' : loser.score) + '</td></tr>' +
+                  '</table>'
+            });
+
+            var theCircle = {
+              path: google.maps.SymbolPath.CIRCLE,
+              fillColor: "rgba(" + Math.floor(color[0]) + ", " + Math.floor(color[1]) + ", " + Math.floor(color[2]) + ", 1)",
+              fillOpacity: 0.8,
+              scale: 5 + 30 * weight,
+              strokeColor: "#000000",
+              strokeWeight: 2,
+            };
+            var dataPoint = new google.maps.Marker({
+              position: new google.maps.LatLng(winner.latitude, winner.longitude),
+              icon: theCircle,
+              map: map,
+              zIndex: weight,
+            });
+            pointArray.push(dataPoint);
+
+            google.maps.event.addListener(dataPoint, 'click', function(){infoWindow.open(map, dataPoint);});
+          }
+        }
+        
+        update();
+
+        $(window).bind('resize', update);
+      }
+
+      function toggleHeatmap() {
+        heatmap.setMap(heatmap.getMap() ? null : map);
+      }
+
+      function changeGradient() {
+        var gradient = [
+          'rgba(0, 255, 255, 0)',
+          'rgba(0, 255, 255, 1)',
+          'rgba(0, 191, 255, 1)',
+          'rgba(0, 127, 255, 1)',
+          'rgba(0, 63, 255, 1)',
+          'rgba(0, 0, 255, 1)',
+          'rgba(0, 0, 223, 1)',
+          'rgba(0, 0, 191, 1)',
+          'rgba(0, 0, 159, 1)',
+          'rgba(0, 0, 127, 1)',
+          'rgba(63, 0, 91, 1)',
+          'rgba(127, 0, 63, 1)',
+          'rgba(191, 0, 31, 1)',
+          'rgba(255, 0, 0, 1)'
+        ]
+        heatmap.setOptions({
+          gradient: heatmap.get('gradient') ? null : gradient
+        });
+      }
+
+      function changeRadius() {
+        heatmap.setOptions({radius: heatmap.get('radius') ? null : 20});
+      }
+
+      function changeOpacity() {
+        heatmap.setOptions({opacity: heatmap.get('opacity') ? null : 0.2});
+      }
+
+      function fmtTime(time) {
+        while (time < 0) time += 60 * 24;
+        while (time >= 60 * 24) time -= 60 * 24;
+        var hourStr = "" + Math.floor(time / 60);
+        var minStr = "" + (time % 60);
+        while (minStr.length < 2) minStr = "0" + minStr;
+        return hourStr + ":" + minStr;
+      }
+
+      function update() {
+
+        $('#map_canvas').height(window.innerHeight - $('#footer').height());
+      }
+    </script>
+    <style>
+      html, body {
+        height: 100%;
+        width: 100%;
+        padding: 0;
+        margin: 0;
+        font-family:"DroidSans","Lucida Sans","Segoe UI","Gill Sans","Gill Sans MT",Verdana,Tahoma,Arial,Helvetica,sans-serif;
+        font-size: 13px;
+      }
+
+      #map_canvas {
+        position: relative;
+        width: 100%;
+        height: 100%;
+      }
+
+      .infoWindow th {
+        text-align: left;
+      }
+
+    </style>
+  </head>
+
+  <body>
+    <div id="wrapper">
+      <div id="footer">
+        <span id="time"></span>
+        <button onclick="toggleHeatmap()">Toggle Heatmap</button>
+        <button onclick="changeGradient()">Change gradient</button>
+        <button onclick="changeRadius()">Change radius</button>
+        <button onclick="changeOpacity()">Change opacity</button>
+      </div>
+        <div id="map_canvas"></div>
+    </div>
+  </body>
+</html>

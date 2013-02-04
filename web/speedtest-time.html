@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Google Maps JavaScript API v3 Example: Heatmap Layer</title>
+    <link href="/maps/documentation/javascript/examples/default.css" rel="stylesheet">
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false&libraries=visualization"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+    <script>
+      $(function() {
+        $.ajax({
+          url: "speedtest-time.json", 
+          dataType: 'json',
+          success: function(data) {
+            rawData = data;
+            initialize();
+          },
+          error: function(a, b, c) {
+            alert(a);
+            alert(b);
+            alert(c);
+          }
+        });
+      });
+
+      var rawData = [];
+      var curTime = 0;
+      var timeOffset = -5 * 60;
+      var pointArray = [];
+      var running = false;
+      var interval;
+
+      function initialize() {
+        var map, mapPoints, heatmap;
+        var mapOptions = {
+          zoom: 3,
+          center: new google.maps.LatLng(41.112469,-40.078125),
+          mapTypeId: google.maps.MapTypeId.SATELLITE
+        };
+      
+        map = new google.maps.Map(document.getElementById('map_canvas'),
+            mapOptions);
+
+        pointArray = new google.maps.MVCArray();
+
+        heatmap = new google.maps.visualization.HeatmapLayer({
+          data: pointArray
+        });
+
+        heatmap.setMap(map);
+        heatmap.setOptions({
+          radius: 15 ,
+          maxIntensity: 30,
+        });
+        
+        update();
+      }
+
+      function toggleHeatmap() {
+        heatmap.setMap(heatmap.getMap() ? null : map);
+      }
+
+      function changeGradient() {
+        var gradient = [
+          'rgba(0, 255, 255, 0)',
+          'rgba(0, 255, 255, 1)',
+          'rgba(0, 191, 255, 1)',
+          'rgba(0, 127, 255, 1)',
+          'rgba(0, 63, 255, 1)',
+          'rgba(0, 0, 255, 1)',
+          'rgba(0, 0, 223, 1)',
+          'rgba(0, 0, 191, 1)',
+          'rgba(0, 0, 159, 1)',
+          'rgba(0, 0, 127, 1)',
+          'rgba(63, 0, 91, 1)',
+          'rgba(127, 0, 63, 1)',
+          'rgba(191, 0, 31, 1)',
+          'rgba(255, 0, 0, 1)'
+        ]
+        heatmap.setOptions({
+          gradient: heatmap.get('gradient') ? null : gradient
+        });
+      }
+
+      function changeRadius() {
+        heatmap.setOptions({radius: heatmap.get('radius') ? null : 20});
+      }
+
+      function changeOpacity() {
+        heatmap.setOptions({opacity: heatmap.get('opacity') ? null : 0.2});
+      }
+
+      function fmtTime(time) {
+        while (time < 0) time += 60 * 24;
+        while (time >= 60 * 24) time -= 60 * 24;
+        var hourStr = "" + Math.floor(time / 60);
+        var minStr = "" + (time % 60);
+        while (minStr.length < 2) minStr = "0" + minStr;
+        return hourStr + ":" + minStr;
+      }
+
+      function changeHour() {
+        curTime += 10;
+        curTime %= 24 * 60;
+        update();
+      }
+
+      function start() { 
+        if (running) return;
+        running = true;
+        interval = window.setInterval(changeHour, 500);
+      }
+      function stop() { 
+        if (!running) return;
+        window.clearInterval(interval);
+        running = false; 
+      }
+
+      function update() {
+        pointArray.clear();
+        var minTime = curTime;
+        var maxTime = minTime + (2 * 60);
+        rawData.forEach(function(point) {
+          var ptTime = point.time + timeOffset;
+
+          while (ptTime < minTime) ptTime += 24 * 60;
+          if (ptTime >= minTime && ptTime <= maxTime) {
+            pointArray.push(new google.maps.LatLng(point.lat, point.long));
+          }
+        });
+
+        $('#time').text(fmtTime(minTime) + " to " + fmtTime(maxTime));
+
+        $('#map_canvas').height(window.innerHeight - $('#footer').height());
+      }
+    </script>
+    <style>
+      html, body {
+        height: 100%;
+        width: 100%;
+        padding: 0;
+        margin: 0;
+      }
+
+      #map_canvas {
+        position: relative;
+        width: 100%;
+        height: 100%;
+      }
+
+    </style>
+  </head>
+
+  <body>
+    <div id="wrapper">
+      <div id="footer">
+        <span id="time"></span>
+        <button onclick="toggleHeatmap()">Toggle Heatmap</button>
+        <button onclick="changeGradient()">Change gradient</button>
+        <button onclick="changeRadius()">Change radius</button>
+        <button onclick="changeOpacity()">Change opacity</button>
+        <button onclick="changeHour()">Change Hour</button>
+        <button onclick="start()">Start</button>
+        <button onclick="stop()">Stop</button>
+      </div>
+        <div id="map_canvas"></div>
+    </div>
+  </body>
+</html>
