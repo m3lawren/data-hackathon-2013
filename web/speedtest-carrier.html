@@ -110,8 +110,8 @@
                 winner = c1Point;
                 loser = c2Point;
               }
-              var scaleA = c1Point.score / (c1Point.score + c2Point.score);
-              var scaleB = c2Point.score / (c1Point.score + c2Point.score);
+              var scaleA = c2Point.score / (c1Point.score + c2Point.score);
+              var scaleB = c1Point.score / (c1Point.score + c2Point.score);
               color = [colA[0] * scaleA + colB[0] * scaleB, 
                        colA[1] * scaleA + colB[1] * scaleB,
                        colA[2] * scaleA + colB[2] * scaleB];
