@@ -161,7 +161,7 @@
         toShow.sort(function(a,b){return b.getZIndex() - a.getZIndex();});
 
         toHide = toHide.concat(toShow.slice(500));
-        toShow = toShow.slice(0, 50);
+        toShow = toShow.slice(0, 500);
 
         toShow.forEach(function(e){ if (e.getMap() == null) e.setMap(map); });
         toHide.forEach(function(e){ if (e.getMap() != null) e.setMap(null); });
