@@ -125,7 +125,7 @@
 
           while (ptTime < minTime) ptTime += 24 * 60;
           if (ptTime >= minTime && ptTime <= maxTime) {
-            pointArray.push(new google.maps.LatLng(point.lat, point.long));
+            pointArray.push(new google.maps.LatLng(point.latitude, point.longitude));
           }
         });
 
