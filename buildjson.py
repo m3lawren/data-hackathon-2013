@@ -22,20 +22,24 @@ results = []
 with codecs.open('speedtest-export-allmobilewithgps.csv', 'r', encoding='utf-8') as f:
   csvreader = unicode_csv_reader(f, delimiter=',', quotechar='"')
   for row in csvreader:
-    if row[0] != "Score":
-      jDict = {
-        "score": int(row[0]),
-        "latency": float(row[1]),
-        "download": float(row[2]),
-        "upload": float(row[3]),
-        "browser": float(row[4]),
-        "datetime": row[5],
-        "latitude": float(row[6]),
-        "longitude": float(row[7]),
-        "time": int(row[8]),
-        "carrier": row[9],
-      }
-      results.append(jDict)
+    if row[1] != "Score":
+      try:
+        jDict = {
+          "score": int(row[1]),
+          "latency": float(row[2]),
+          "download": float(row[3]),
+          "upload": float(row[4]),
+          "browser": float(row[5]),
+          "datetime": row[6],
+          "latitude": float(row[7]),
+          "longitude": float(row[8]),
+          "time": int(row[9]),
+          "carrier": row[0],
+        }
+        results.append(jDict)
+      except:
+        print row
+        raise 
 
 print json.dumps(results)
 

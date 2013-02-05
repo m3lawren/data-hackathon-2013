@@ -84,7 +84,6 @@
           var dataPoint = new google.maps.Marker({
             position: new google.maps.LatLng(point.latitude, point.longitude),
             icon: theCircle,
-            map: map,
             zIndex: weight,
           });
           markerArray.push(dataPoint);
@@ -93,6 +92,7 @@
         });
         
         onResize();
+        update();
 
         $(window).bind('resize', onResize);
         google.maps.event.addListener(map, 'idle', update);
